@@ -2,7 +2,7 @@ import * as path from 'path';
 import { LLMMessage, LLMProvider } from './llm/types';
 import chalk from 'chalk';
 import { parseDatasetRef, DatasetRef } from './bigquery/client';
-import { runAgentTurn, AgentOptions } from './claude/agent';
+import { runAgentTurn, AgentOptions } from './agent/agent';
 import { FileIndex, formatIndexForPrompt } from './local/indexer';
 import { Config } from './config';
 

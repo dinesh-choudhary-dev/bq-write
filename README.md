@@ -1,6 +1,6 @@
 # bq-write
 
-Ask questions about your data in plain English. `bq-write` reads your app's source code to understand your schema — column meanings, status codes, table relationships — then uses Claude to generate accurate BigQuery SQL and run it.
+Ask questions about your data in plain English. `bq-write` reads your app's source code to understand your schema — column meanings, status codes, table relationships — then generates accurate BigQuery SQL and runs it.
 
 ```
 bq> How many active users signed up in the last 7 days?
@@ -24,7 +24,7 @@ bq> How many active users signed up in the last 7 days?
 
 ## How it works
 
-Claude is given `list_directory` and `read_file` tools scoped to your project directory. When you ask a question, it explores your source code to find the relevant model or migration files, reads only what it needs, then calls BigQuery to run the query — no pre-indexing, no embeddings, no setup.
+An AI agent is given `list_directory` and `read_file` tools scoped to your project directory. When you ask a question, it reads the relevant entity and enum files, then calls BigQuery to run the query — no pre-indexing, no embeddings, no setup.
 
 ---
 
