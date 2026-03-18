@@ -1,6 +1,6 @@
 {
   "name": "bq-write",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Query your app's BigQuery dataset (Fivetran / Datastream / Airbyte sync) in plain English — using your ORM entities as context.",
   "main": "dist/index.js",
   "bin": {
