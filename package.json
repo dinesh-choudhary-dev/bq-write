@@ -1,6 +1,6 @@
 {
   "name": "bq-write",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BigQuery Natural Language Query CLI using Claude",
   "main": "dist/index.js",
   "bin": {
@@ -27,6 +27,14 @@
     "sql"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dinesh-choudhary-dev/bq-write.git"
+  },
+  "homepage": "https://github.com/dinesh-choudhary-dev/bq-write#readme",
+  "bugs": {
+    "url": "https://github.com/dinesh-choudhary-dev/bq-write/issues"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google-cloud/bigquery": "^7.0.0",
