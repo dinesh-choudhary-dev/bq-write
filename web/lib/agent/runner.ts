@@ -223,6 +223,8 @@ export async function runAgentTurn(
 
           case "run_query": {
             const sql = (tool.input as { sql: string }).sql;
+            console.log("[agent] run_query →", options.datasetRef.projectId, options.datasetRef.datasetId);
+            console.log("[agent] SQL:\n" + sql);
             const result = await runQuery(options.datasetRef, sql, options.accessToken);
             lastQueryResult = result;
             resultContent = JSON.stringify(
@@ -250,6 +252,7 @@ export async function runAgentTurn(
         }
       } catch (err) {
         resultContent = `Error: ${err instanceof Error ? err.message : String(err)}`;
+        console.error(`[agent] tool "${tool.name}" failed:`, err);
       }
 
       toolResults.push({ type: "tool_result", tool_use_id: tool.id, content: resultContent });

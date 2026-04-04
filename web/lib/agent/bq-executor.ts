@@ -35,7 +35,11 @@ async function bqFetch(url: string, accessToken: string, body?: unknown) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error?.message ?? `BigQuery error ${res.status}`);
+    const message = data?.error?.message ?? `BigQuery error ${res.status}`;
+    console.error("[bq-executor] HTTP", res.status, url);
+    console.error("[bq-executor] Error:", message);
+    console.error("[bq-executor] Full response:", JSON.stringify(data, null, 2));
+    throw new Error(message);
   }
   return data;
 }
