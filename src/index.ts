@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import chalk from 'chalk';
 import { select, input } from '@inquirer/prompts';
+import archiver from 'archiver';
 import { loadConfig } from './config';
 import { initPipeline, askQuestion } from './pipeline';
 import { loadRecentDatasets, saveDataset } from './local/datasets';
@@ -144,6 +146,48 @@ async function main() {
     return;
   }
 
+  // Handle zip command — packages indexed entity files into a zip for web upload
+  if (process.argv[2] === 'zip') {
+    const scanDir = getScanDir(repoDir) ?? '';
+    let index = loadFileIndex(repoDir);
+    if (!index) {
+      index = runIndex(repoDir, scanDir);
+    } else {
+      console.log(chalk.dim(`Using cached index: ${index.files.length} files\n`));
+    }
+
+    if (index.files.length === 0) {
+      console.log(chalk.yellow('No entity files found. Run `bq-write reindex` first.'));
+      return;
+    }
+
+    const outPath = path.join(repoDir, 'entity-files.zip');
+    const output = fs.createWriteStream(outPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    await new Promise<void>((resolve, reject) => {
+      output.on('close', resolve);
+      archive.on('error', reject);
+      archive.pipe(output);
+
+      const scanRoot = scanDir ? path.join(repoDir, scanDir) : repoDir;
+      for (const file of index!.files) {
+        const absPath = path.join(scanRoot, file.path);
+        if (fs.existsSync(absPath)) {
+          archive.file(absPath, { name: file.path });
+        }
+      }
+
+      archive.finalize();
+    });
+
+    const sizeKb = Math.round(fs.statSync(outPath).size / 1024);
+    console.log(chalk.green(`\nCreated entity-files.zip`));
+    console.log(chalk.dim(`  ${index.files.length} file(s) · ${sizeKb}KB → ${outPath}`));
+    console.log(chalk.dim('\nUpload this zip at: your-app-url/s-admin/apps/{id} → Files tab'));
+    return;
+  }
+
   // Load config — auto-redirect to setup if no keys found
   let config;
   try {
@@ -262,6 +306,8 @@ async function main() {
       console.log(chalk.dim('  /switch   — change model or dataset'));
       console.log(chalk.dim('  /reindex  — re-scan project files'));
       console.log(chalk.dim('  exit      — quit\n'));
+      console.log(chalk.dim('  Run outside REPL:'));
+      console.log(chalk.dim('  bq-write zip      — create entity-files.zip for web upload'));
       rl.prompt();
       return;
     }

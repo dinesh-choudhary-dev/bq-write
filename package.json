@@ -38,6 +38,8 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@google-cloud/bigquery": "^7.0.0",
     "@inquirer/prompts": "^8.3.2",
+    "@types/archiver": "^7.0.0",
+    "archiver": "^7.0.1",
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.3",
     "dotenv": "^16.4.0",
