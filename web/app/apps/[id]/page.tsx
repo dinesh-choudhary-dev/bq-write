@@ -65,6 +65,7 @@ export default function AppQueryPage({ params }: { params: { id: string } }) {
   const [question, setQuestion] = useState("");
   const [thinking, setThinking] = useState(false);
   const [liveSteps, setLiveSteps] = useState<LiveStep[]>([]);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -214,9 +215,23 @@ export default function AppQueryPage({ params }: { params: { id: string } }) {
               {selectedDataset.label}
             </span>
           )}
+          <button
+            onClick={() => setMemoryOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-700 rounded-lg px-2.5 py-1.5 transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
+              <path d="M12 8v4l3 3" />
+            </svg>
+            Memory
+          </button>
           <span className="text-zinc-500 text-sm">{session.user?.email}</span>
         </div>
       </header>
+
+      {memoryOpen && (
+        <MemoryPanel appId={params.id} onClose={() => setMemoryOpen(false)} />
+      )}
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
@@ -655,6 +670,111 @@ function MarkdownMessage({ text }: { text: string }) {
     >
       {text}
     </ReactMarkdown>
+  );
+}
+
+// ─── Memory panel ─────────────────────────────────────────────────────────────
+
+function MemoryPanel({ appId, onClose }: { appId: string; onClose: () => void }) {
+  const [content, setContent] = useState("");
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "saving" | "saved">("loading");
+
+  useEffect(() => {
+    fetch(`/api/apps/${appId}/memory`)
+      .then((r) => r.json())
+      .then((d) => { setContent(d.content ?? ""); setLoadState("ready"); });
+  }, [appId]);
+
+  async function save() {
+    setLoadState("saving");
+    await fetch(`/api/apps/${appId}/memory`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    setLoadState("saved");
+    setTimeout(() => setLoadState("ready"), 1500);
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="fixed right-0 top-0 h-full w-[480px] bg-zinc-950 border-l border-zinc-800 z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-zinc-400">
+              <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" />
+              <path d="M12 8v4l3 3" />
+            </svg>
+            <span className="text-sm font-medium text-zinc-200">App Memory</span>
+          </div>
+          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Description */}
+        <div className="px-5 py-3 border-b border-zinc-800/60 flex-shrink-0">
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Schema facts shared across all users and datasets of this app.
+            Claude reads this before every query and updates it when it learns something new.
+            Keep it focused on column types, enum values, and non-obvious join patterns.
+          </p>
+        </div>
+
+        {/* Editor */}
+        <div className="flex-1 overflow-hidden flex flex-col p-4 gap-3">
+          {loadState === "loading" ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Spinner className="text-zinc-600" />
+            </div>
+          ) : (
+            <textarea
+              value={content}
+              onChange={(e) => { setContent(e.target.value); if (loadState === "saved") setLoadState("ready"); }}
+              placeholder={`## table_name\n- Column facts, enum values, non-obvious patterns\n\n## another_table\n- ...`}
+              className="flex-1 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-xs text-zinc-300 font-mono placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600 transition-colors resize-none leading-relaxed"
+              spellCheck={false}
+            />
+          )}
+
+          <div className="flex items-center justify-between flex-shrink-0">
+            <span className="text-[11px] text-zinc-700">
+              {content.length > 0 ? `${content.split("\n").length} lines` : "Empty"}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onClose}
+                className="text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={save}
+                disabled={loadState === "loading" || loadState === "saving"}
+                className="flex items-center gap-1.5 text-xs bg-zinc-100 text-zinc-900 hover:bg-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 font-medium"
+              >
+                {loadState === "saving" && <Spinner className="text-zinc-600 w-3 h-3" />}
+                {loadState === "saved" ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Saved
+                  </>
+                ) : loadState === "saving" ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
