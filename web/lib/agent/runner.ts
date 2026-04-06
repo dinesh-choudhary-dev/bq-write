@@ -222,16 +222,57 @@ async function readAppFile(appId: string, filePath: string): Promise<string> {
   return await data.text();
 }
 
+/**
+ * When the previous turn ended with ask_clarification, the history ends with:
+ *   assistant: [tool_use(ask_clarification, id=X)]
+ *   user: "plain text clarification response"
+ *
+ * The API requires a tool_result immediately after a tool_use. Fix it by
+ * converting the trailing user text message into a tool_result block.
+ */
+function fixClarificationHistory(
+  msgs: Anthropic.MessageParam[]
+): Anthropic.MessageParam[] {
+  if (msgs.length < 2) return msgs;
+
+  const last = msgs[msgs.length - 1];
+  const prev = msgs[msgs.length - 2];
+
+  if (
+    last.role !== "user" ||
+    typeof last.content !== "string" ||
+    prev.role !== "assistant" ||
+    !Array.isArray(prev.content)
+  ) {
+    return msgs;
+  }
+
+  const clarTool = (prev.content as Anthropic.ContentBlock[]).find(
+    (b) => b.type === "tool_use" && (b as Anthropic.ToolUseBlock).name === "ask_clarification"
+  ) as Anthropic.ToolUseBlock | undefined;
+
+  if (!clarTool) return msgs;
+
+  const fixed = [...msgs];
+  fixed[fixed.length - 1] = {
+    role: "user",
+    content: [{ type: "tool_result", tool_use_id: clarTool.id, content: last.content }],
+  };
+  return fixed;
+}
+
 export async function runAgentTurn(
   messages: Message[],
   options: AgentRunOptions
 ): Promise<AgentRunResult> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-  const localMessages: Anthropic.MessageParam[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content as Anthropic.MessageParam["content"],
-  }));
+  const localMessages: Anthropic.MessageParam[] = fixClarificationHistory(
+    messages.map((m) => ({
+      role: m.role,
+      content: m.content as Anthropic.MessageParam["content"],
+    }))
+  );
 
   let lastQueryResult: QueryResult | undefined;
 
