@@ -1,39 +1,21 @@
 "use client";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DbApp } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AppsPage() {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const [apps, setApps] = useState<DbApp[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
     fetch("/api/apps")
       .then((r) => r.json())
       .then((d) => setApps(d.apps ?? []))
       .finally(() => setLoading(false));
-  }, [status]);
-
-  if (status === "loading") return <LoadingScreen />;
-
-  if (!session) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <p className="text-zinc-300">Sign in to access your apps.</p>
-          <button
-            onClick={() => signIn("google")}
-            className="bg-white text-zinc-900 font-medium text-sm px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors"
-          >
-            Sign in with Google
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -101,6 +83,3 @@ export default function AppsPage() {
   );
 }
 
-function LoadingScreen() {
-  return <div className="flex items-center justify-center min-h-screen"><span className="text-zinc-500 text-sm">Loading...</span></div>;
-}

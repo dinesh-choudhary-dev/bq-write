@@ -1,8 +1,10 @@
 "use client";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import type { DbAppDataset, DbAppFile } from "@/lib/supabase";
+import { LoadingScreen } from "@/components/auth-guards";
+import { useAuth } from "@/lib/auth-context";
 
 interface AppDetail {
   id: string;
@@ -18,7 +20,7 @@ interface Member {
 type Tab = "files" | "datasets" | "members";
 
 export default function AdminAppDetailPage({ params }: { params: { id: string } }) {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const [app, setApp] = useState<AppDetail | null>(null);
   const [datasets, setDatasets] = useState<DbAppDataset[]>([]);
   const [files, setFiles] = useState<DbAppFile[]>([]);
@@ -39,13 +41,11 @@ export default function AdminAppDetailPage({ params }: { params: { id: string } 
   };
 
   useEffect(() => {
-    if (status !== "authenticated") return;
     reload();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, []);
 
-  if (status === "loading" || loading) return <LoadingScreen />;
-  if (!session || !["admin", "superadmin"].includes(session.role)) return <AccessDenied />;
+  if (loading) return <LoadingScreen />;
   if (!app) return <div className="flex items-center justify-center min-h-screen"><p className="text-zinc-500 text-sm">App not found.</p></div>;
 
   return (
@@ -427,9 +427,3 @@ function MembersTab({
   );
 }
 
-function LoadingScreen() {
-  return <div className="flex items-center justify-center min-h-screen"><span className="text-zinc-500 text-sm">Loading...</span></div>;
-}
-function AccessDenied() {
-  return <div className="flex items-center justify-center min-h-screen"><p className="text-zinc-500 text-sm">Access denied.</p></div>;
-}

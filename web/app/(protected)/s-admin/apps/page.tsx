@@ -1,26 +1,21 @@
 "use client";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { DbApp } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AdminAppsPage() {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const [apps, setApps] = useState<DbApp[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
     fetch("/api/apps")
       .then((r) => r.json())
       .then((d) => setApps(d.apps ?? []))
       .finally(() => setLoading(false));
-  }, [status]);
-
-  if (status === "loading") return <LoadingScreen />;
-  if (!session || !["admin", "superadmin"].includes(session.role)) {
-    return <AccessDenied />;
-  }
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -99,18 +94,3 @@ export default function AdminAppsPage() {
   );
 }
 
-function LoadingScreen() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <span className="text-zinc-500 text-sm">Loading...</span>
-    </div>
-  );
-}
-
-function AccessDenied() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-zinc-500 text-sm">Access denied.</p>
-    </div>
-  );
-}

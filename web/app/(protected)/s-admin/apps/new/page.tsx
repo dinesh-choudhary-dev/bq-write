@@ -1,21 +1,14 @@
 "use client";
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function NewAppPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (status === "loading") return <LoadingScreen />;
-  if (!session || !["admin", "superadmin"].includes(session.role)) {
-    return <AccessDenied />;
-  }
 
   async function handleCreate() {
     if (!name.trim()) return;
@@ -102,9 +95,3 @@ export default function NewAppPage() {
   );
 }
 
-function LoadingScreen() {
-  return <div className="flex items-center justify-center min-h-screen"><span className="text-zinc-500 text-sm">Loading...</span></div>;
-}
-function AccessDenied() {
-  return <div className="flex items-center justify-center min-h-screen"><p className="text-zinc-500 text-sm">Access denied.</p></div>;
-}

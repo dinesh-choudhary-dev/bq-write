@@ -1,11 +1,13 @@
 "use client";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { DbAppDataset } from "@/lib/supabase";
 import type { Message, AgentStep } from "@/lib/agent/runner";
+import { LoadingScreen, AccessDenied } from "@/components/auth-guards";
+import { useAuth } from "@/lib/auth-context";
 
 interface AppInfo {
   id: string;
@@ -55,7 +57,7 @@ function eventToStep(event: Record<string, unknown>): LiveStep | null {
 }
 
 export default function AppQueryPage({ params }: { params: { id: string } }) {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const [app, setApp] = useState<AppInfo | null>(null);
   const [datasets, setDatasets] = useState<DbAppDataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>("");
@@ -69,7 +71,6 @@ export default function AppQueryPage({ params }: { params: { id: string } }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
     fetch(`/api/apps/${params.id}`)
       .then((r) => r.json())
       .then((d) => {
@@ -78,7 +79,7 @@ export default function AppQueryPage({ params }: { params: { id: string } }) {
         if (d.datasets?.length > 0) setSelectedDatasetId(d.datasets[0].id);
       })
       .finally(() => setLoading(false));
-  }, [status, params.id]);
+  }, [params.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -183,9 +184,8 @@ export default function AppQueryPage({ params }: { params: { id: string } }) {
     }
   }
 
-  if (status === "loading" || loading) return <LoadingScreen />;
-  if (!session) return <AccessDenied message="You must be signed in." />;
-  if (!app) return <AccessDenied message="App not found or access denied." />;
+  if (loading) return <LoadingScreen />;
+  if (!session || !app) return <AccessDenied message="App not found or access denied." />;
 
   const selectedDataset = datasets.find((d) => d.id === selectedDatasetId);
 
@@ -784,9 +784,3 @@ function MemoryPanel({ appId, onClose }: { appId: string; onClose: () => void })
   );
 }
 
-function LoadingScreen() {
-  return <div className="flex items-center justify-center min-h-screen"><span className="text-zinc-500 text-sm">Loading...</span></div>;
-}
-function AccessDenied({ message }: { message: string }) {
-  return <div className="flex items-center justify-center min-h-screen"><p className="text-zinc-500 text-sm">{message}</p></div>;
-}

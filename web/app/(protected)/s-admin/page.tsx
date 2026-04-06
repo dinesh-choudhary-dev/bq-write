@@ -1,18 +1,18 @@
 "use client";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { DbUser } from "@/lib/supabase";
+import { AccessDenied } from "@/components/auth-guards";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SuperAdminPage() {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const [users, setUsers] = useState<DbUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-
     fetch("/api/admin/users")
       .then((res) => res.json())
       .then((data) => {
@@ -21,15 +21,7 @@ export default function SuperAdminPage() {
       })
       .catch(() => setError("Failed to load users"))
       .finally(() => setLoading(false));
-  }, [status]);
-
-  if (status === "loading") {
-    return <LoadingScreen />;
-  }
-
-  if (!session) {
-    return <AccessDenied message="You must be signed in." />;
-  }
+  }, []);
 
   if (session.role !== "superadmin") {
     return <AccessDenied message="This page is restricted to superadmins." />;
@@ -157,21 +149,3 @@ function formatDate(iso: string) {
   });
 }
 
-function LoadingScreen() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <span className="text-zinc-500 text-sm">Loading...</span>
-    </div>
-  );
-}
-
-function AccessDenied({ message }: { message: string }) {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center space-y-2">
-        <p className="text-zinc-300 font-medium">Access denied</p>
-        <p className="text-zinc-500 text-sm">{message}</p>
-      </div>
-    </div>
-  );
-}

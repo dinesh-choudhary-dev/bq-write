@@ -1,8 +1,9 @@
 "use client";
-import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { LoadingScreen } from "@/components/auth-guards";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LaunchPage() {
   return (
@@ -13,7 +14,7 @@ export default function LaunchPage() {
 }
 
 function LaunchContent() {
-  const { data: session, status } = useSession();
+  const session = useAuth();
   const searchParams = useSearchParams();
 
   const [githubConnected, setGithubConnected] = useState<boolean | null>(null);
@@ -23,8 +24,6 @@ function LaunchContent() {
 
   // Check GitHub connection status on load
   useEffect(() => {
-    if (status !== "authenticated") return;
-
     const githubParam = searchParams.get("github");
     if (githubParam === "connected") {
       setGithubConnected(true);
@@ -61,24 +60,6 @@ function LaunchContent() {
     } finally {
       setLaunching(false);
     }
-  }
-
-  if (status === "loading") return <LoadingScreen />;
-
-  if (!session) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <p className="text-zinc-300">Sign in to use this feature.</p>
-          <button
-            onClick={() => signIn("google")}
-            className="bg-white text-zinc-900 font-medium text-sm px-4 py-2 rounded-lg hover:bg-zinc-100 transition-colors"
-          >
-            Sign in with Google
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -192,14 +173,6 @@ function LaunchContent() {
           )}
         </div>
       </main>
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <span className="text-zinc-500 text-sm">Loading...</span>
     </div>
   );
 }
